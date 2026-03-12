@@ -17,11 +17,17 @@
   with cli11_wrapper. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#pragma once
+#include "cli11_wrapper/argv_parser.hxx"
 
-namespace cli11_wrapper::os_wrapper {
+#include <doctest/doctest.h>
 
-using process_handle_t = int;
-static process_handle_t constexpr invalid_process_handle{-1};
+namespace cli11_wrapper {
+namespace {
 
-} // namespace cli11_wrapper::os_wrapper
+TEST_CASE("argv_parser") {
+  REQUIRE(true);
+  REQUIRE(true);
+}
+
+} // namespace
+} // namespace cli11_wrapper

@@ -16,6 +16,16 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+include(FetchContent)
+
+FetchContent_Declare(
+    cli11
+    URL https://github.com/CLIUtils/CLI11/archive/refs/tags/v2.6.2.tar.gz
+    # GIT_REPOSITORY https://github.com/CLIUtils/CLI11.git
+    # GIT_TAG        v2.6.2
+)
+FetchContent_MakeAvailable(cli11)
+
 # Check if this is being used as a subdirectory via FetchContent, add_subdirectory or similar ...
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_LIST_DIR)
     set(CLI11WRAPPER_TOP_LEVEL ON)
@@ -80,8 +90,11 @@ target_include_directories(
     cli11_wrapper
         PUBLIC
             "${cli11_wrapper_SOURCE_DIR}/include"
-        PRIVATE
-            "${cli11_wrapper_SOURCE_DIR}/src/include"
+)
+target_link_libraries(
+    cli11_wrapper
+        PUBLIC
+            CLI11::CLI11
 )
 
 add_library(
