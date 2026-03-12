@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <iostream>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -40,11 +41,21 @@ struct argv_parser {
     return app.add_flag(std::forward<Args>(args)...);
   }
 
-  // call it this way (in `main`, etc.): 
+  explicit operator CLI::App &() {
+    // force 2 lines
+    return app;
+  }
+
+  // call it this way (in `main`, etc.):
   // ```
   // CLI11_PARSE(argv_parser_instance);
   // ```
   void parse();
+
+  [[nodiscard]] int exit(CLI::Error const &e, std::ostream &out = std::cout,
+                         std::ostream &err = std::cerr) {
+    return app.exit(e, out, err);
+  }
 
 private:
   argv_parser(const argv_parser &) = delete;
