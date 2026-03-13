@@ -98,7 +98,7 @@ private:
 } // namespace
 
 argv_parser::argv_parser(std::string &&app_desc, std::string &&app_name,
-                         std::vector<std::string_view> &&config_names,
+                         std::vector<std::string> &&config_names,
                          int const aArgc, char **const aArgv)
     : app{std::move(app_desc), std::move(app_name)},
       config_names{std::move(config_names)}, argc{aArgc}, argv{aArgv} {
@@ -109,8 +109,8 @@ argv_parser::argv_parser(std::string &&app_desc, std::string &&app_name,
 void argv_parser::parse() {
   toml_merger confs;
 
-  for (auto const conf_name : config_names) {
-    confs.load(std::string{conf_name});
+  for (auto const &conf_name : config_names) {
+    confs.load(conf_name);
   }
 
   if (!confs.empty()) {

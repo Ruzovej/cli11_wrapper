@@ -21,7 +21,6 @@
 
 #include <iostream>
 #include <string>
-#include <string_view>
 #include <vector>
 
 #include <CLI/CLI.hpp>
@@ -30,8 +29,8 @@ namespace cli11_wrapper {
 
 struct argv_parser {
   explicit argv_parser(std::string &&app_desc, std::string &&app_name,
-                       std::vector<std::string_view> &&config_names,
-                       int const aArgc, char **const aArgv);
+                       std::vector<std::string> &&config_names, int const aArgc,
+                       char **const aArgv);
 
   template <typename... Args> auto add_option(Args &&...args) {
     return app.add_option(std::forward<Args>(args)...);
@@ -41,9 +40,29 @@ struct argv_parser {
     return app.add_flag(std::forward<Args>(args)...);
   }
 
-  explicit operator CLI::App &() {
+  // explicit operator CLI::App &() {
+  //   // force 2 lines
+  //   return app;
+  // }
+
+  void reset_argc_argv(int const aArgc, char **const aArgv) {
+    argc = aArgc;
+    argv = aArgv;
+  }
+
+  void set_allow_extras(bool const allow) {
     // force 2 lines
-    return app;
+    app.allow_extras(allow);
+  }
+
+  void set_allow_config_extras(bool const allow) {
+    // force 2 lines
+    app.allow_config_extras(allow);
+  }
+
+  [[nodiscard]] std::vector<std::string> get_parsed_extras() const {
+    // force 2 lines
+    return app.remaining();
   }
 
   // call it this way (in `main`, etc.):
@@ -64,7 +83,7 @@ private:
   argv_parser &operator=(argv_parser &&) = delete;
 
   CLI::App app;
-  std::vector<std::string_view> config_names;
+  std::vector<std::string> config_names;
   int argc;
   char **argv;
 };
