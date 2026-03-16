@@ -19,6 +19,7 @@
 
 #include "cli11_wrapper/argv_parser.hxx"
 
+#include <cassert>
 #include <cstdlib>
 
 #include <filesystem>
@@ -100,10 +101,37 @@ private:
 argv_parser::argv_parser(std::string &&app_desc, std::string &&app_name,
                          std::vector<std::string> &&config_names,
                          int const aArgc, char **const aArgv)
-    : app{std::move(app_desc), std::move(app_name)},
+    : app{std::make_unique<CLI::App>(std::move(app_desc), std::move(app_name))},
       config_names{std::move(config_names)}, argc{aArgc}, argv{aArgv} {
+  assert(app != nullptr);
   // explicit --config from CLI (highest-priority config file)
-  app.set_config("--config")->expected(0, 1)->check(CLI::ExistingFile);
+  app->set_config("--config")->expected(0, 1)->check(CLI::ExistingFile);
+}
+
+void argv_parser::failure_message(
+    std::function<std::string(const CLI::App *, const CLI::Error &e)>
+        &&msg_sink_fn) {
+  app->failure_message(std::move(msg_sink_fn));
+}
+
+void argv_parser::reset_argc_argv(int const aArgc, char **const aArgv) {
+  argc = aArgc;
+  argv = aArgv;
+}
+
+void argv_parser::set_allow_extras(bool const allow) {
+  // force 2 lines
+  app->allow_extras(allow);
+}
+
+void argv_parser::set_allow_config_extras(bool const allow) {
+  // force 2 lines
+  app->allow_config_extras(allow);
+}
+
+std::vector<std::string> argv_parser::get_parsed_extras() const {
+  // force 2 lines
+  return app->remaining();
 }
 
 void argv_parser::parse() {
@@ -116,10 +144,15 @@ void argv_parser::parse() {
   if (!confs.empty()) {
     auto ss{confs.to_toml_ss()};
 
-    app.parse_from_stream(ss);
+    app->parse_from_stream(ss);
   }
 
-  app.parse(argc, argv);
+  app->parse(argc, argv);
+}
+
+int argv_parser::exit(CLI::Error const &e, std::ostream &out,
+                      std::ostream &err) {
+  return app->exit(e, out, err);
 }
 
 } // namespace cli11_wrapper

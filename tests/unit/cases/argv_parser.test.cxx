@@ -30,6 +30,31 @@
 
 namespace {
 
+[[nodiscard]] cli11_wrapper::argv_parser
+make_semi_initialized_parser(std::vector<std::string> &&config_names) {
+  static std::string_view constexpr app_name{"myapp1"};
+  static std::string_view constexpr app_desc{"myapp1 description"};
+
+  return cli11_wrapper::argv_parser{std::string{app_desc},
+                                    std::string{app_name},
+                                    std::move(config_names), 0, nullptr};
+}
+
+[[nodiscard]] cli11_wrapper::argv_parser
+make_parser(std::vector<std::string> &&config_names,
+            std::string &error_msg_buffer) {
+  auto parser{make_semi_initialized_parser(std::move(config_names))};
+
+  parser.failure_message(
+      [&error_msg_buffer]([[maybe_unused]] CLI::App const *const app,
+                          CLI::Error const &e) -> std::string {
+        error_msg_buffer = e.what();
+        return {};
+      });
+
+  return parser;
+}
+
 struct scoped_env_var {
   explicit scoped_env_var(std::string &&aName, std::string const &val)
       : name{std::move(aName)} {
@@ -134,128 +159,133 @@ TEST_CASE("argv_parser") {
   static std::string_view constexpr app_name{"myapp1"};
   static std::string_view constexpr app_desc{"myapp1"};
 
-  SUBCASE("no flags, etc.") {
-    cli11_wrapper::argv_parser parser{
-        std::string{app_desc}, std::string{app_name}, {}, 0, nullptr};
+  SUBCASE("no configs") {
+    std::string error_msg_buffer;
+    auto parser{make_parser({}, error_msg_buffer)};
 
-    SUBCASE("empty") {
-      auto const [argc, argv]{build_argc_argv(app_name, {})};
+    SUBCASE("no flags, etc.") {
+      SUBCASE("empty") {
+        auto const [argc, argv]{build_argc_argv(app_name, {})};
 
-      parser.reset_argc_argv(argc, argv.get());
+        parser.reset_argc_argv(argc, argv.get());
 
-      REQUIRE_EQ(call_parse_like_in_main(parser), EXIT_SUCCESS);
+        REQUIRE_EQ(call_parse_like_in_main(parser), EXIT_SUCCESS);
+      }
+
+      SUBCASE("some unknown arg(s), error") {
+        auto const [argc, argv]{build_argc_argv(app_name, {"--foo"})};
+
+        parser.reset_argc_argv(argc, argv.get());
+
+        // highlighting: `..._NE...` ~ not equal:
+        REQUIRE_NE(call_parse_like_in_main(parser), EXIT_SUCCESS);
+
+        REQUIRE_EQ(parser.get_parsed_extras(),
+                   std::vector<std::string>{"--foo"});
+
+        REQUIRE_EQ(
+            error_msg_buffer,
+            std::string_view{"The following argument was not expected: --foo"});
+      }
+
+      SUBCASE("some unknown arg(s), allowed") {
+        parser.set_allow_extras(true);
+
+        auto const [argc, argv]{build_argc_argv(app_name, {"--foo"})};
+
+        parser.reset_argc_argv(argc, argv.get());
+
+        REQUIRE_EQ(call_parse_like_in_main(parser), EXIT_SUCCESS);
+
+        REQUIRE_EQ(parser.get_parsed_extras(),
+                   std::vector<std::string>{"--foo"});
+      }
     }
 
-    SUBCASE("some unknown arg(s), error") {
-      auto const [argc, argv]{build_argc_argv(app_name, {"--foo"})};
+    SUBCASE("flags") {
+      bool flag = false;
+      parser.add_flag("-f,--flag,!--no-flag", flag, "flag desc.");
 
-      parser.reset_argc_argv(argc, argv.get());
+      bool option = false;
+      parser.add_flag("-o,--option,!--no-option", option, "option desc.");
 
-      // highlighting: `..._NE...` ~ not equal:
-      REQUIRE_NE(call_parse_like_in_main(parser), EXIT_SUCCESS);
+      SUBCASE("no args") {
+        auto const [argc, argv]{build_argc_argv(app_name, {})};
 
-      REQUIRE_EQ(parser.get_parsed_extras(), std::vector<std::string>{"--foo"});
-    }
+        parser.reset_argc_argv(argc, argv.get());
 
-    SUBCASE("some unknown arg(s), allowed") {
-      parser.set_allow_extras(true);
+        REQUIRE_EQ(call_parse_like_in_main(parser), EXIT_SUCCESS);
 
-      auto const [argc, argv]{build_argc_argv(app_name, {"--foo"})};
+        REQUIRE_FALSE(flag);
+        REQUIRE_FALSE(option);
+      }
 
-      parser.reset_argc_argv(argc, argv.get());
+      SUBCASE("--flag") {
+        auto const [argc, argv]{build_argc_argv(app_name, {"--flag"})};
 
-      REQUIRE_EQ(call_parse_like_in_main(parser), EXIT_SUCCESS);
+        parser.reset_argc_argv(argc, argv.get());
 
-      REQUIRE_EQ(parser.get_parsed_extras(), std::vector<std::string>{"--foo"});
-    }
-  }
+        REQUIRE_EQ(call_parse_like_in_main(parser), EXIT_SUCCESS);
 
-  SUBCASE("flags") {
-    cli11_wrapper::argv_parser parser{
-        std::string{app_desc}, std::string{app_name}, {}, 0, nullptr};
+        REQUIRE(flag);
+        REQUIRE_FALSE(option);
+      }
 
-    bool flag = false;
-    parser.add_flag("-f,--flag,!--no-flag", flag, "flag desc.");
+      SUBCASE("--option") {
+        auto const [argc, argv]{build_argc_argv(app_name, {"--option"})};
 
-    bool option = false;
-    parser.add_flag("-o,--option,!--no-option", option, "option desc.");
+        parser.reset_argc_argv(argc, argv.get());
 
-    SUBCASE("no args") {
-      auto const [argc, argv]{build_argc_argv(app_name, {})};
+        REQUIRE_EQ(call_parse_like_in_main(parser), EXIT_SUCCESS);
 
-      parser.reset_argc_argv(argc, argv.get());
+        REQUIRE_FALSE(flag);
+        REQUIRE(option);
+      }
 
-      REQUIRE_EQ(call_parse_like_in_main(parser), EXIT_SUCCESS);
+      SUBCASE("--no-flag") {
+        auto const [argc, argv]{build_argc_argv(app_name, {"--no-flag"})};
 
-      REQUIRE_FALSE(flag);
-      REQUIRE_FALSE(option);
-    }
+        parser.reset_argc_argv(argc, argv.get());
 
-    SUBCASE("--flag") {
-      auto const [argc, argv]{build_argc_argv(app_name, {"--flag"})};
+        REQUIRE_EQ(call_parse_like_in_main(parser), EXIT_SUCCESS);
 
-      parser.reset_argc_argv(argc, argv.get());
+        REQUIRE_FALSE(flag);
+        REQUIRE_FALSE(option);
+      }
 
-      REQUIRE_EQ(call_parse_like_in_main(parser), EXIT_SUCCESS);
+      SUBCASE("--no-option") {
+        auto const [argc, argv]{build_argc_argv(app_name, {"--no-option"})};
 
-      REQUIRE(flag);
-      REQUIRE_FALSE(option);
-    }
+        parser.reset_argc_argv(argc, argv.get());
 
-    SUBCASE("--option") {
-      auto const [argc, argv]{build_argc_argv(app_name, {"--option"})};
+        REQUIRE_EQ(call_parse_like_in_main(parser), EXIT_SUCCESS);
 
-      parser.reset_argc_argv(argc, argv.get());
+        REQUIRE_FALSE(flag);
+        REQUIRE_FALSE(option);
+      }
 
-      REQUIRE_EQ(call_parse_like_in_main(parser), EXIT_SUCCESS);
+      SUBCASE("--flag --option") {
+        auto const [argc,
+                    argv]{build_argc_argv(app_name, {"--flag", "--option"})};
 
-      REQUIRE_FALSE(flag);
-      REQUIRE(option);
-    }
+        parser.reset_argc_argv(argc, argv.get());
 
-    SUBCASE("--no-flag") {
-      auto const [argc, argv]{build_argc_argv(app_name, {"--no-flag"})};
+        REQUIRE_EQ(call_parse_like_in_main(parser), EXIT_SUCCESS);
 
-      parser.reset_argc_argv(argc, argv.get());
+        REQUIRE(flag);
+        REQUIRE(option);
+      }
 
-      REQUIRE_EQ(call_parse_like_in_main(parser), EXIT_SUCCESS);
+      SUBCASE("-fo ... abbreviated flags") {
+        auto const [argc, argv]{build_argc_argv(app_name, {"-fo"})};
 
-      REQUIRE_FALSE(flag);
-      REQUIRE_FALSE(option);
-    }
+        parser.reset_argc_argv(argc, argv.get());
 
-    SUBCASE("--no-option") {
-      auto const [argc, argv]{build_argc_argv(app_name, {"--no-option"})};
+        REQUIRE_EQ(call_parse_like_in_main(parser), EXIT_SUCCESS);
 
-      parser.reset_argc_argv(argc, argv.get());
-
-      REQUIRE_EQ(call_parse_like_in_main(parser), EXIT_SUCCESS);
-
-      REQUIRE_FALSE(flag);
-      REQUIRE_FALSE(option);
-    }
-
-    SUBCASE("--flag --option") {
-      auto const [argc,
-                  argv]{build_argc_argv(app_name, {"--flag", "--option"})};
-
-      parser.reset_argc_argv(argc, argv.get());
-
-      REQUIRE_EQ(call_parse_like_in_main(parser), EXIT_SUCCESS);
-
-      REQUIRE(flag);
-      REQUIRE(option);
-    }
-
-    SUBCASE("-fo ... abbreviated flags") {
-      auto const [argc, argv]{build_argc_argv(app_name, {"-fo"})};
-
-      parser.reset_argc_argv(argc, argv.get());
-
-      REQUIRE_EQ(call_parse_like_in_main(parser), EXIT_SUCCESS);
-
-      REQUIRE(flag);
-      REQUIRE(option);
+        REQUIRE(flag);
+        REQUIRE(option);
+      }
     }
   }
 }

@@ -32,38 +32,30 @@ struct argv_parser {
                        std::vector<std::string> &&config_names, int const aArgc,
                        char **const aArgv);
 
+  argv_parser(argv_parser &&) noexcept = default;
+  argv_parser &operator=(argv_parser &&) noexcept = default;
+
+  // TODO un-template this, and only have there fwd. declaration of the
+  // `CLI::App` in order to reduce compile time, etc.
   template <typename... Args> auto add_option(Args &&...args) {
-    return app.add_option(std::forward<Args>(args)...);
+    return app->add_option(std::forward<Args>(args)...);
   }
 
   template <typename... Args> auto add_flag(Args &&...args) {
-    return app.add_flag(std::forward<Args>(args)...);
+    return app->add_flag(std::forward<Args>(args)...);
   }
 
-  // explicit operator CLI::App &() {
-  //   // force 2 lines
-  //   return app;
-  // }
+  void failure_message(
+      std::function<std::string(const CLI::App *, const CLI::Error &e)>
+          &&msg_sink_fn);
 
-  void reset_argc_argv(int const aArgc, char **const aArgv) {
-    argc = aArgc;
-    argv = aArgv;
-  }
+  void reset_argc_argv(int const aArgc, char **const aArgv);
 
-  void set_allow_extras(bool const allow) {
-    // force 2 lines
-    app.allow_extras(allow);
-  }
+  void set_allow_extras(bool const allow);
 
-  void set_allow_config_extras(bool const allow) {
-    // force 2 lines
-    app.allow_config_extras(allow);
-  }
+  void set_allow_config_extras(bool const allow);
 
-  [[nodiscard]] std::vector<std::string> get_parsed_extras() const {
-    // force 2 lines
-    return app.remaining();
-  }
+  [[nodiscard]] std::vector<std::string> get_parsed_extras() const;
 
   // call it this way (in `main`, etc.):
   // ```
@@ -72,20 +64,16 @@ struct argv_parser {
   void parse();
 
   [[nodiscard]] int exit(CLI::Error const &e, std::ostream &out = std::cout,
-                         std::ostream &err = std::cerr) {
-    return app.exit(e, out, err);
-  }
+                         std::ostream &err = std::cerr);
 
 private:
   argv_parser(const argv_parser &) = delete;
   argv_parser &operator=(const argv_parser &) = delete;
-  argv_parser(argv_parser &&) = delete;
-  argv_parser &operator=(argv_parser &&) = delete;
 
-  CLI::App app;
+  std::unique_ptr<CLI::App> app;
   std::vector<std::string> config_names;
   int argc;
-  char **argv;
+  char **argv; // non-owned
 };
 
 } // namespace cli11_wrapper
