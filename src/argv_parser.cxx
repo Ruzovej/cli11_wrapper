@@ -129,9 +129,21 @@ CLI::Option *argv_parser::add_option(std::string &&name, int &value,
   return app->add_option(std::move(name), value, std::move(desc));
 }
 
+CLI::Option *argv_parser::add_option(env_var_name &&env, std::string &&name,
+                                     int &value, std::string &&desc) {
+  return add_option(std::move(name), value, std::move(desc))
+      ->envname(std::move(env).get_name());
+}
+
 CLI::Option *argv_parser::add_option(std::string &&name, long long &value,
                                      std::string &&desc) {
   return app->add_option(std::move(name), value, std::move(desc));
+}
+
+CLI::Option *argv_parser::add_option(env_var_name &&env, std::string &&name,
+                                     long long &value, std::string &&desc) {
+  return add_option(std::move(name), value, std::move(desc))
+      ->envname(std::move(env).get_name());
 }
 
 CLI::Option *argv_parser::add_option(std::string &&name, double &value,
@@ -139,9 +151,21 @@ CLI::Option *argv_parser::add_option(std::string &&name, double &value,
   return app->add_option(std::move(name), value, std::move(desc));
 }
 
+CLI::Option *argv_parser::add_option(env_var_name &&env, std::string &&name,
+                                     double &value, std::string &&desc) {
+  return add_option(std::move(name), value, std::move(desc))
+      ->envname(std::move(env).get_name());
+}
+
 CLI::Option *argv_parser::add_option(std::string &&name, std::string &value,
                                      std::string &&desc) {
   return app->add_option(std::move(name), value, std::move(desc));
+}
+
+CLI::Option *argv_parser::add_option(env_var_name &&env, std::string &&name,
+                                     std::string &value, std::string &&desc) {
+  return add_option(std::move(name), value, std::move(desc))
+      ->envname(std::move(env).get_name());
 }
 
 CLI::Option *argv_parser::add_option(std::string &&name,
@@ -150,9 +174,22 @@ CLI::Option *argv_parser::add_option(std::string &&name,
   return app->add_option(std::move(name), values, std::move(desc));
 }
 
+CLI::Option *argv_parser::add_option(env_var_name &&env, std::string &&name,
+                                     std::vector<std::string> &values,
+                                     std::string &&desc) {
+  return add_option(std::move(name), values, std::move(desc))
+      ->envname(std::move(env).get_name());
+}
+
 CLI::Option *argv_parser::add_flag(std::string &&name, bool &flag,
                                    std::string &&desc) {
   return app->add_flag(std::move(name), flag, std::move(desc));
+}
+
+CLI::Option *argv_parser::add_flag(env_var_name &&env, std::string &&name,
+                                   bool &flag, std::string &&desc) {
+  return add_flag(std::move(name), flag, std::move(desc))
+      ->envname(std::move(env).get_name());
 }
 
 void argv_parser::failure_message(

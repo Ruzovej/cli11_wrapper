@@ -43,6 +43,20 @@ class Option;
 
 namespace cli11_wrapper {
 
+struct env_var_name {
+  explicit env_var_name(std::string &&aName) : name{std::move(aName)} {
+    // force 2 lines
+  }
+
+  std::string get_name() && {
+    // force 2 lines
+    return std::move(name);
+  }
+
+private:
+  std::string name;
+};
+
 struct argv_parser {
   explicit argv_parser(std::string &&app_desc, std::string &&app_name,
                        std::vector<std::string> &&config_names, int const aArgc,
@@ -57,16 +71,33 @@ struct argv_parser {
 
   CLI::Option *add_option(std::string &&name, int &value,
                           std::string &&desc = "");
+  CLI::Option *add_option(env_var_name &&env, std::string &&name, int &value,
+                          std::string &&desc = "");
+
   CLI::Option *add_option(std::string &&name, long long &value,
                           std::string &&desc = "");
+  CLI::Option *add_option(env_var_name &&env, std::string &&name,
+                          long long &value, std::string &&desc = "");
+
   CLI::Option *add_option(std::string &&name, double &value,
                           std::string &&desc = "");
+  CLI::Option *add_option(env_var_name &&env, std::string &&name, double &value,
+                          std::string &&desc = "");
+
   CLI::Option *add_option(std::string &&name, std::string &value,
                           std::string &&desc = "");
+  CLI::Option *add_option(env_var_name &&env, std::string &&name,
+                          std::string &value, std::string &&desc = "");
+
   CLI::Option *add_option(std::string &&name, std::vector<std::string> &values,
+                          std::string &&desc = "");
+  CLI::Option *add_option(env_var_name &&env, std::string &&name,
+                          std::vector<std::string> &values,
                           std::string &&desc = "");
 
   CLI::Option *add_flag(std::string &&name, bool &flag,
+                        std::string &&desc = "");
+  CLI::Option *add_flag(env_var_name &&env, std::string &&name, bool &flag,
                         std::string &&desc = "");
 
   void failure_message(
