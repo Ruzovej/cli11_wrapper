@@ -20,22 +20,22 @@
 #include "cli11_wrapper/argv_parser.hxx"
 
 #include <cstdlib>
+#include <cstring>
 
 #include <filesystem>
 #include <fstream>
 #include <optional>
 #include <string_view>
 
-#include <CLI/CLI.hpp>
-
 #include <doctest/doctest.h>
 
 namespace {
 
+std::string_view constexpr app_name{"myapp1"};
+std::string_view constexpr app_desc{"myapp1 description"};
+
 [[nodiscard]] cli11_wrapper::argv_parser
 make_semi_initialized_parser(std::vector<std::string> &&config_names) {
-  static std::string_view constexpr app_name{"myapp1"};
-  static std::string_view constexpr app_desc{"myapp1 description"};
 
   return cli11_wrapper::argv_parser{std::string{app_desc},
                                     std::string{app_name},
@@ -44,15 +44,10 @@ make_semi_initialized_parser(std::vector<std::string> &&config_names) {
 
 [[nodiscard]] cli11_wrapper::argv_parser
 make_parser(std::vector<std::string> &&config_names,
-            std::string &error_msg_buffer) {
+            std::ostringstream &err_msg_sink) {
   auto parser{make_semi_initialized_parser(std::move(config_names))};
 
-  parser.failure_message(
-      [&error_msg_buffer]([[maybe_unused]] CLI::App const *const app,
-                          CLI::Error const &e) -> std::string {
-        error_msg_buffer = e.what();
-        return {};
-      });
+  parser.set_error_message_sink(err_msg_sink);
 
   return parser;
 }
@@ -118,9 +113,9 @@ private:
   std::filesystem::path path;
 };
 
-// TODO maybe move this in the class as its method?!
 [[nodiscard]] int call_parse_like_in_main(cli11_wrapper::argv_parser &parser) {
-  CLI11_PARSE(parser);
+  // TBH, `return parser.do_parse();` would be exactly the same ...:
+  CLI11_WRAPPER_PARSE(parser);
 
   return EXIT_SUCCESS;
 }
@@ -158,12 +153,10 @@ build_argc_argv(std::string_view const path,
 }
 
 TEST_CASE("argv_parser") {
-  static std::string_view constexpr app_name{"myapp1"};
-  static std::string_view constexpr app_desc{"myapp1"};
+  std::ostringstream err_msg_sink;
 
   SUBCASE("no configs") {
-    std::string error_msg_buffer;
-    auto parser{make_parser({}, error_msg_buffer)};
+    auto parser{make_parser({}, err_msg_sink)};
 
     SUBCASE("no flags, etc.") {
       SUBCASE("empty") {
@@ -185,9 +178,11 @@ TEST_CASE("argv_parser") {
         REQUIRE_EQ(parser.get_parsed_extras(),
                    std::vector<std::string>{"--foo"});
 
-        REQUIRE_EQ(
-            error_msg_buffer,
-            std::string_view{"The following argument was not expected: --foo"});
+        REQUIRE_EQ(err_msg_sink.str(),
+                   std::string_view{
+                       "The following argument was not expected: --foo\n"});
+
+        err_msg_sink.str("");
       }
 
       SUBCASE("some unknown arg(s), allowed") {
@@ -290,6 +285,8 @@ TEST_CASE("argv_parser") {
       }
     }
   }
+
+  REQUIRE(err_msg_sink.str().empty());
 }
 
 } // namespace

@@ -116,6 +116,14 @@ argv_parser &argv_parser::operator=(argv_parser &&) noexcept = default;
 
 argv_parser::~argv_parser() = default;
 
+void argv_parser::set_error_message_sink(std::ostringstream &err_msg_sink) {
+  failure_message([&err_msg_sink]([[maybe_unused]] CLI::App const *const app,
+                                  CLI::Error const &e) -> std::string {
+    err_msg_sink << e.what() << '\n';
+    return {};
+  });
+}
+
 CLI::Option *argv_parser::add_option(std::string &&name, int &value,
                                      std::string &&desc) {
   return app->add_option(std::move(name), value, std::move(desc));
@@ -137,9 +145,9 @@ CLI::Option *argv_parser::add_option(std::string &&name, std::string &value,
 }
 
 CLI::Option *argv_parser::add_option(std::string &&name,
-                                     std::vector<std::string> &value,
+                                     std::vector<std::string> &values,
                                      std::string &&desc) {
-  return app->add_option(std::move(name), value, std::move(desc));
+  return app->add_option(std::move(name), values, std::move(desc));
 }
 
 CLI::Option *argv_parser::add_flag(std::string &&name, bool &flag,
@@ -148,7 +156,7 @@ CLI::Option *argv_parser::add_flag(std::string &&name, bool &flag,
 }
 
 void argv_parser::failure_message(
-    std::function<std::string(const CLI::App *, const CLI::Error &e)>
+    std::function<std::string(CLI::App const *, CLI::Error const &e)>
         &&msg_sink_fn) {
   app->failure_message(std::move(msg_sink_fn));
 }
@@ -171,6 +179,12 @@ void argv_parser::set_allow_config_extras(bool const allow) {
 std::vector<std::string> argv_parser::get_parsed_extras() const {
   // force 2 lines
   return app->remaining();
+}
+
+int argv_parser::do_parse() {
+  CLI11_PARSE(*this);
+
+  return EXIT_SUCCESS;
 }
 
 void argv_parser::parse() {

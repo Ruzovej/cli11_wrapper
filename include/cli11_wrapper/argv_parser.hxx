@@ -22,13 +22,23 @@
 #include <functional>
 #include <iostream>
 #include <memory>
+#include <sstream>
 #include <string>
 #include <vector>
 
+// call this from `main`, etc.:
+#define CLI11_WRAPPER_PARSE(parser)                                            \
+  do {                                                                         \
+    auto const parse_res{parser.do_parse()};                                   \
+    if (parse_res != EXIT_SUCCESS) {                                           \
+      return parse_res;                                                        \
+    }                                                                          \
+  } while (false)
+
 namespace CLI {
 class App;
-class Option;
 class Error;
+class Option;
 } // namespace CLI
 
 namespace cli11_wrapper {
@@ -41,6 +51,8 @@ struct argv_parser {
   argv_parser(argv_parser &&) noexcept;
   argv_parser &operator=(argv_parser &&) noexcept;
 
+  void set_error_message_sink(std::ostringstream &err_msg_sink);
+
   ~argv_parser();
 
   CLI::Option *add_option(std::string &&name, int &value,
@@ -51,14 +63,14 @@ struct argv_parser {
                           std::string &&desc = "");
   CLI::Option *add_option(std::string &&name, std::string &value,
                           std::string &&desc = "");
-  CLI::Option *add_option(std::string &&name, std::vector<std::string> &value,
+  CLI::Option *add_option(std::string &&name, std::vector<std::string> &values,
                           std::string &&desc = "");
 
   CLI::Option *add_flag(std::string &&name, bool &flag,
                         std::string &&desc = "");
 
   void failure_message(
-      std::function<std::string(const CLI::App *, const CLI::Error &e)>
+      std::function<std::string(CLI::App const *, CLI::Error const &e)>
           &&msg_sink_fn);
 
   void reset_argc_argv(int const aArgc, char **const aArgv);
@@ -72,23 +84,26 @@ struct argv_parser {
   // TODO wrap those 2 below properly, so it's not needed to inlcude CLI/CLI.hpp
   // to use them, etc.:
 
-  // call it this way (in `main`, etc.):
+  // call it this way (in `main`, etc.), not directly:
   // ```
-  // CLI11_PARSE(argv_parser_instance);
+  // CLI11_WRAPPER_PARSE(argv_parser_instance);
   // ```
+  [[nodiscard]] int do_parse();
+
+private:
   void parse();
 
   [[nodiscard]] int exit(CLI::Error const &e, std::ostream &out = std::cout,
                          std::ostream &err = std::cerr);
 
-private:
-  argv_parser(const argv_parser &) = delete;
-  argv_parser &operator=(const argv_parser &) = delete;
-
   std::unique_ptr<CLI::App> app;
   std::vector<std::string> config_names;
   int argc;
   char **argv; // non-owned
+
+private:
+  argv_parser(const argv_parser &) = delete;
+  argv_parser &operator=(const argv_parser &) = delete;
 };
 
 } // namespace cli11_wrapper
