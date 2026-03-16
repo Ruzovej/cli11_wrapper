@@ -26,6 +26,8 @@
 #include <fstream>
 #include <unordered_map>
 
+#include <CLI/CLI.hpp>
+
 namespace cli11_wrapper {
 
 namespace {
@@ -106,6 +108,43 @@ argv_parser::argv_parser(std::string &&app_desc, std::string &&app_name,
   assert(app != nullptr);
   // explicit --config from CLI (highest-priority config file)
   app->set_config("--config")->expected(0, 1)->check(CLI::ExistingFile);
+}
+
+argv_parser::argv_parser(argv_parser &&) noexcept = default;
+
+argv_parser &argv_parser::operator=(argv_parser &&) noexcept = default;
+
+argv_parser::~argv_parser() = default;
+
+CLI::Option *argv_parser::add_option(std::string &&name, int &value,
+                                     std::string &&desc) {
+  return app->add_option(std::move(name), value, std::move(desc));
+}
+
+CLI::Option *argv_parser::add_option(std::string &&name, long long &value,
+                                     std::string &&desc) {
+  return app->add_option(std::move(name), value, std::move(desc));
+}
+
+CLI::Option *argv_parser::add_option(std::string &&name, double &value,
+                                     std::string &&desc) {
+  return app->add_option(std::move(name), value, std::move(desc));
+}
+
+CLI::Option *argv_parser::add_option(std::string &&name, std::string &value,
+                                     std::string &&desc) {
+  return app->add_option(std::move(name), value, std::move(desc));
+}
+
+CLI::Option *argv_parser::add_option(std::string &&name,
+                                     std::vector<std::string> &value,
+                                     std::string &&desc) {
+  return app->add_option(std::move(name), value, std::move(desc));
+}
+
+CLI::Option *argv_parser::add_flag(std::string &&name, bool &flag,
+                                   std::string &&desc) {
+  return app->add_flag(std::move(name), flag, std::move(desc));
 }
 
 void argv_parser::failure_message(

@@ -26,6 +26,8 @@
 #include <optional>
 #include <string_view>
 
+#include <CLI/CLI.hpp>
+
 #include <doctest/doctest.h>
 
 namespace {

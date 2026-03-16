@@ -19,11 +19,17 @@
 
 #pragma once
 
+#include <functional>
 #include <iostream>
+#include <memory>
 #include <string>
 #include <vector>
 
-#include <CLI/CLI.hpp>
+namespace CLI {
+class App;
+class Option;
+class Error;
+} // namespace CLI
 
 namespace cli11_wrapper {
 
@@ -32,18 +38,24 @@ struct argv_parser {
                        std::vector<std::string> &&config_names, int const aArgc,
                        char **const aArgv);
 
-  argv_parser(argv_parser &&) noexcept = default;
-  argv_parser &operator=(argv_parser &&) noexcept = default;
+  argv_parser(argv_parser &&) noexcept;
+  argv_parser &operator=(argv_parser &&) noexcept;
 
-  // TODO un-template this, and only have there fwd. declaration of the
-  // `CLI::App` in order to reduce compile time, etc.
-  template <typename... Args> auto add_option(Args &&...args) {
-    return app->add_option(std::forward<Args>(args)...);
-  }
+  ~argv_parser();
 
-  template <typename... Args> auto add_flag(Args &&...args) {
-    return app->add_flag(std::forward<Args>(args)...);
-  }
+  CLI::Option *add_option(std::string &&name, int &value,
+                          std::string &&desc = "");
+  CLI::Option *add_option(std::string &&name, long long &value,
+                          std::string &&desc = "");
+  CLI::Option *add_option(std::string &&name, double &value,
+                          std::string &&desc = "");
+  CLI::Option *add_option(std::string &&name, std::string &value,
+                          std::string &&desc = "");
+  CLI::Option *add_option(std::string &&name, std::vector<std::string> &value,
+                          std::string &&desc = "");
+
+  CLI::Option *add_flag(std::string &&name, bool &flag,
+                        std::string &&desc = "");
 
   void failure_message(
       std::function<std::string(const CLI::App *, const CLI::Error &e)>
@@ -56,6 +68,9 @@ struct argv_parser {
   void set_allow_config_extras(bool const allow);
 
   [[nodiscard]] std::vector<std::string> get_parsed_extras() const;
+
+  // TODO wrap those 2 below properly, so it's not needed to inlcude CLI/CLI.hpp
+  // to use them, etc.:
 
   // call it this way (in `main`, etc.):
   // ```
