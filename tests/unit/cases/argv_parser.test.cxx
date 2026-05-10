@@ -36,7 +36,6 @@ std::string_view constexpr app_desc{"myapp1 description"};
 
 [[nodiscard]] cli11_wrapper::argv_parser
 make_semi_initialized_parser(std::vector<std::string> &&config_names) {
-
   return cli11_wrapper::argv_parser{std::string{app_desc},
                                     std::string{app_name},
                                     std::move(config_names), 0, nullptr};
@@ -199,7 +198,7 @@ TEST_CASE("argv_parser") {
       }
     }
 
-    SUBCASE("flags") {
+    SUBCASE("flags, no env.") {
       bool flag = false;
       parser.add_flag("-f,--flag,!--no-flag", flag, "flag desc.");
 
@@ -282,6 +281,92 @@ TEST_CASE("argv_parser") {
 
         REQUIRE(flag);
         REQUIRE(option);
+      }
+
+      SUBCASE("--flag --flag ... repeated flags") {
+        auto const [argc,
+                    argv]{build_argc_argv(app_name, {"--flag", "--flag"})};
+
+        parser.reset_argc_argv(argc, argv.get());
+
+        REQUIRE_EQ(call_parse_like_in_main(parser), EXIT_SUCCESS);
+
+        REQUIRE(flag);
+        REQUIRE_FALSE(option);
+      }
+
+      SUBCASE("--flag --no-flag ... flag countering itself") {
+        auto const [argc,
+                    argv]{build_argc_argv(app_name, {"--flag", "--no-flag"})};
+
+        parser.reset_argc_argv(argc, argv.get());
+
+        REQUIRE_EQ(call_parse_like_in_main(parser), EXIT_SUCCESS);
+
+        REQUIRE_FALSE(flag);
+        REQUIRE_FALSE(option);
+      }
+
+      SUBCASE("--no-flag --flag ... flag overwriting itself") {
+        auto const [argc,
+                    argv]{build_argc_argv(app_name, {"--no-flag", "--flag"})};
+
+        parser.reset_argc_argv(argc, argv.get());
+
+        REQUIRE_EQ(call_parse_like_in_main(parser), EXIT_SUCCESS);
+
+        REQUIRE(flag);
+        REQUIRE_FALSE(option);
+      }
+    }
+
+    SUBCASE("flag(s), with env.") {
+      bool flag = false;
+      parser.add_flag(cli11_wrapper::env_var_name{"CLI11WRAPPERUNITTEST_FLAG"},
+                      "-f,--flag,!--no-flag", flag, "flag desc.");
+
+      SUBCASE("no args ... using value 1 from env.") {
+        auto const [argc, argv]{build_argc_argv(app_name, {})};
+
+        parser.reset_argc_argv(argc, argv.get());
+
+        scoped_env_var env_var{"CLI11WRAPPERUNITTEST_FLAG", "1"};
+        REQUIRE_EQ(call_parse_like_in_main(parser), EXIT_SUCCESS);
+
+        REQUIRE(flag);
+      }
+
+      SUBCASE("no args ... using value 0 from env.") {
+        auto const [argc, argv]{build_argc_argv(app_name, {})};
+
+        parser.reset_argc_argv(argc, argv.get());
+
+        scoped_env_var env_var{"CLI11WRAPPERUNITTEST_FLAG", "0"};
+        REQUIRE_EQ(call_parse_like_in_main(parser), EXIT_SUCCESS);
+
+        REQUIRE_FALSE(flag);
+      }
+
+      SUBCASE("--flag ... flag overwriting env.") {
+        auto const [argc, argv]{build_argc_argv(app_name, {"--flag"})};
+
+        parser.reset_argc_argv(argc, argv.get());
+
+        scoped_env_var env_var{"CLI11WRAPPERUNITTEST_FLAG", "0"};
+        REQUIRE_EQ(call_parse_like_in_main(parser), EXIT_SUCCESS);
+
+        REQUIRE(flag);
+      }
+
+      SUBCASE("--no-flag ... overwriting env.") {
+        auto const [argc, argv]{build_argc_argv(app_name, {"--no-flag"})};
+
+        parser.reset_argc_argv(argc, argv.get());
+
+        scoped_env_var env_var{"CLI11WRAPPERUNITTEST_FLAG", "1"};
+        REQUIRE_EQ(call_parse_like_in_main(parser), EXIT_SUCCESS);
+
+        REQUIRE_FALSE(flag);
       }
     }
   }
