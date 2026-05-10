@@ -576,6 +576,63 @@ TEST_CASE("argv_parser") {
     }
   }
 
+  SUBCASE("options") {
+    SUBCASE("int") {
+      SUBCASE("no configs") {
+        auto parser{make_parser({}, err_msg_sink)};
+
+        int option = -1;
+        parser.add_option(
+            cli11_wrapper::env_var_name{"CLI11WRAPPERUNITTEST_OPTION"},
+            "-o,--option", option, "option desc.");
+
+        SUBCASE("default value") {
+          auto const [argc, argv]{build_argc_argv(app_name, {})};
+
+          parser.reset_argc_argv(argc, argv.get());
+
+          REQUIRE_EQ(call_parse_like_in_main(parser), EXIT_SUCCESS);
+
+          REQUIRE_EQ(option, -1);
+        }
+
+        SUBCASE("--option 42") {
+          auto const [argc,
+                      argv]{build_argc_argv(app_name, {"--option", "42"})};
+
+          parser.reset_argc_argv(argc, argv.get());
+
+          REQUIRE_EQ(call_parse_like_in_main(parser), EXIT_SUCCESS);
+
+          REQUIRE_EQ(option, 42);
+        }
+
+        SUBCASE("env. alone") {
+          auto const [argc, argv]{build_argc_argv(app_name, {})};
+
+          parser.reset_argc_argv(argc, argv.get());
+
+          scoped_env_var env_var{"CLI11WRAPPERUNITTEST_OPTION", "42"};
+          REQUIRE_EQ(call_parse_like_in_main(parser), EXIT_SUCCESS);
+
+          REQUIRE_EQ(option, 42);
+        }
+
+        SUBCASE("--option 42, overwriting env.") {
+          auto const [argc,
+                      argv]{build_argc_argv(app_name, {"--option", "42"})};
+
+          parser.reset_argc_argv(argc, argv.get());
+
+          scoped_env_var env_var{"CLI11WRAPPERUNITTEST_OPTION", "666"};
+          REQUIRE_EQ(call_parse_like_in_main(parser), EXIT_SUCCESS);
+
+          REQUIRE_EQ(option, 42);
+        }
+      }
+    }
+  }
+
   REQUIRE(err_msg_sink.str().empty());
 }
 
