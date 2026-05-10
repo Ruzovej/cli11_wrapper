@@ -91,6 +91,7 @@ struct argv_parser {
 
   CLI::Option *add_option(std::string &&name, std::vector<std::string> &values,
                           std::string &&desc = "");
+  // TODO is there even "reasonable" way how to specify it in an env. var.?!
   CLI::Option *add_option(env_var_name &&env, std::string &&name,
                           std::vector<std::string> &values,
                           std::string &&desc = "");

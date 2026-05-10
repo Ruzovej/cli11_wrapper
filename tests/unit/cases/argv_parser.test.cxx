@@ -760,15 +760,21 @@ TEST_CASE("argv_parser") {
   SUBCASE("all at once") {
     static std::string_view constexpr config_content1{R"(
       # comment line
+      str2 = conf1_string2
       flag1 = true
       flag2 = false
       str1 = "Hello world!"
+      fp2 = 5.1
+      flag3 = false
       )"};
     tmp_file const config1{config_content1};
 
     static std::string_view constexpr config_content2{R"(
       # comment line
       flag2 = true
+      int2 = 666
+      fp1 = 2.718281828
+      fp2 = 5.2
       int1 = 42
       )"};
     tmp_file const config2{config_content2};
@@ -778,8 +784,9 @@ TEST_CASE("argv_parser") {
       flag1 = false
       # `int` would overflow, `long long` is needed:
       ll1 = 8000000000
+      fp2 = 5.3
       fp1 = 3.141529
-      str2 = string2
+      str2 = conf3_string2
       array1 = ["a1", "a2", "a3"]
       )"};
     tmp_file const config3{config_content3};
@@ -789,8 +796,6 @@ TEST_CASE("argv_parser") {
                      config3.get_path().string()},
                     err_msg_sink)};
 
-    parser.set_allow_config_extras(false);
-
     bool flag1 = false;
     parser.add_flag(cli11_wrapper::env_var_name{"CLI11WRAPPERUNITTEST_FLAG1"},
                     "--flag1,!--no-flag1", flag1, "flag1 desc.");
@@ -799,7 +804,7 @@ TEST_CASE("argv_parser") {
     parser.add_flag(cli11_wrapper::env_var_name{"CLI11WRAPPERUNITTEST_FLAG2"},
                     "--flag2,!--no-flag2", flag2, "flag2 desc.");
 
-    bool flag3 = false;
+    bool flag3 = true;
     parser.add_flag(cli11_wrapper::env_var_name{"CLI11WRAPPERUNITTEST_FLAG3"},
                     "--flag3,!--no-flag3", flag3, "flag3 desc.");
 
@@ -857,18 +862,52 @@ TEST_CASE("argv_parser") {
         cli11_wrapper::env_var_name{"CLI11WRAPPERUNITTEST_ARRAY2"}, "--array2",
         array2, "array2 desc.");
 
-    static std::string_view constexpr expected_str{
-        "Hello, how are You? I'm fine, thanks for asking."};
+    parser.set_allow_config_extras(true);
 
-    auto const [argc, argv]{
-        build_argc_argv(app_name, {"--array2", std::string{expected_str},
-                                   "some", "extra", "args"})};
+    auto const [argc, argv]{build_argc_argv(
+        app_name,
+        {"--array2", "Hello, how are You? I'm fine, thanks for asking.", "some",
+         "extra", "args", "--fp3", "18.26", "--no-flag2", "--flag4", "--fp2",
+         "5.5", "tail_extra_1", "tail_extra_2", "...", "tail_extra_n"})};
 
     parser.reset_argc_argv(argc, argv.get());
 
+    scoped_env_var env_var1{"CLI11WRAPPERUNITTEST_FLAG4", "0"};
+    scoped_env_var env_var2{"CLI11WRAPPERUNITTEST_INT2", "-100"};
+    scoped_env_var env_var3{"CLI11WRAPPERUNITTEST_LL2", "9000000000"};
+    scoped_env_var env_var4{"CLI11WRAPPERUNITTEST_FP2", "5.4"};
+    scoped_env_var env_var5{"CLI11WRAPPERUNITTEST_STR1",
+                            "Hello amazing world ...!"};
+
     REQUIRE_EQ(call_parse_like_in_main(parser), EXIT_SUCCESS);
 
-    // TODO asserts on particular parsed values ...
+    REQUIRE_FALSE(flag1); // conf1 < conf3
+    REQUIRE_FALSE(flag2); // conf1 < conf2 < cli
+    REQUIRE_FALSE(flag3); // conf1
+    REQUIRE(flag4);       // env. < cli
+
+    REQUIRE_EQ(int1, 42);   // conf2
+    REQUIRE_EQ(int2, -100); // conf2 < env.
+
+    REQUIRE_EQ(ll1, 8'000'000'000LL); // conf3
+    REQUIRE_EQ(ll2, 9'000'000'000LL); // env.
+
+    REQUIRE_EQ(fp1, 3.141529); // conf2 < conf3
+    REQUIRE_EQ(fp2, 5.5);      // conf1 < conf2 < conf3 < env. < cli
+    REQUIRE_EQ(fp3, 18.26);    // cli
+
+    REQUIRE_EQ(str1, "Hello amazing world ...!"); // conf1 < env.
+    REQUIRE_EQ(str2, "conf3_string2");            // conf1 < conf3
+    REQUIRE_EQ(str3, "default str3");             // default value
+
+    REQUIRE_EQ(array1, std::vector<std::string>{"a1", "a2", "a3"}); // conf3
+    REQUIRE_EQ(array2, std::vector<std::string>{
+                           "Hello, how are You? I'm fine, thanks for asking.",
+                           "some", "extra", "args"}); // cli
+
+    REQUIRE_EQ(parser.get_parsed_extras(),
+               std::vector<std::string>{"tail_extra_1", "tail_extra_2", "...",
+                                        "tail_extra_n"}); // cli
   }
 
   REQUIRE(err_msg_sink.str().empty());
