@@ -386,11 +386,11 @@ TEST_CASE("argv_parser") {
   SUBCASE("with configs") {
     SUBCASE("single config") {
       static std::string_view constexpr config_content{R"(
-# comment line
-flag = true
-option = false
-whatever_else = 42
-)"};
+        # comment line
+        flag = true
+        option = false
+        whatever_else = 42
+        )"};
       tmp_file const config{config_content};
 
       auto parser{make_parser({config.get_path().string()}, err_msg_sink)};
@@ -490,30 +490,30 @@ whatever_else = 42
 
     SUBCASE("more configs") {
       static std::string_view constexpr config_content1{R"(
-# comment line
-conf1 = true
-conf2 = false
-conf3 = false
-conf4 = false
-conf5 = false
-)"};
+        # comment line
+        conf1 = true
+        conf2 = false
+        conf3 = false
+        conf4 = false
+        conf5 = false
+        )"};
       tmp_file const config1{config_content1};
 
       static std::string_view constexpr config_content2{R"(
-# comment line
-conf2 = true
-conf3 = false
-conf4 = false
-conf5 = false
-)"};
+        # comment line
+        conf2 = true
+        conf3 = false
+        conf4 = false
+        conf5 = false
+        )"};
       tmp_file const config2{config_content2};
 
       static std::string_view constexpr config_content3{R"(
-# comment line
-conf3 = true
-conf4 = false
-conf5 = false
-)"};
+        # comment line
+        conf3 = true
+        conf4 = false
+        conf5 = false
+        )"};
       tmp_file const config3{config_content3};
 
       scoped_env_var env_var{"CLI11WRAPPERUNITTEST_CONF4", "1"};
