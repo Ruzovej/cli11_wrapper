@@ -910,6 +910,55 @@ TEST_CASE("argv_parser") {
                                         "tail_extra_n"}); // cli
   }
 
+  SUBCASE("parsed extras") {
+    auto parser{make_parser({}, err_msg_sink)};
+
+    std::string foo{"Ignored, whatever ..."};
+    parser.add_option("-f,--foo", foo, "foo desc.");
+
+    parser.set_allow_extras(true);
+
+    SUBCASE("none") {
+      auto const [argc, argv]{build_argc_argv(app_name, {"--foo", "bar"})};
+
+      parser.reset_argc_argv(argc, argv.get());
+
+      REQUIRE_EQ(call_parse_like_in_main(parser), EXIT_SUCCESS);
+
+      REQUIRE_EQ(parser.get_parsed_extras(), std::vector<std::string>{});
+
+      REQUIRE_EQ(foo, "bar");
+
+      auto const extras{parser.get_parsed_extras_c_like()};
+
+      REQUIRE_EQ(extras.argc(), 0);
+      REQUIRE_EQ(extras.argv()[0], app_name);
+      REQUIRE_EQ(extras.argv()[1], nullptr);
+    }
+
+    SUBCASE("some") {
+      auto const [argc, argv]{
+          build_argc_argv(app_name, {"--foo", "bar", "baz", "qux"})};
+
+      parser.reset_argc_argv(argc, argv.get());
+
+      REQUIRE_EQ(call_parse_like_in_main(parser), EXIT_SUCCESS);
+
+      REQUIRE_EQ(parser.get_parsed_extras(),
+                 std::vector<std::string>{"baz", "qux"});
+
+      REQUIRE_EQ(foo, "bar");
+
+      auto const extras{parser.get_parsed_extras_c_like()};
+
+      REQUIRE_EQ(extras.argc(), 2);
+      REQUIRE_EQ(extras.argv()[0], app_name);
+      REQUIRE_EQ(extras.argv()[1], std::string_view{"baz"});
+      REQUIRE_EQ(extras.argv()[2], std::string_view{"qux"});
+      REQUIRE_EQ(extras.argv()[3], nullptr);
+    }
+  }
+
   REQUIRE(err_msg_sink.str().empty());
 }
 

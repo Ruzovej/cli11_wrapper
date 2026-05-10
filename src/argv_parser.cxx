@@ -21,6 +21,7 @@
 
 #include <cassert>
 #include <cstdlib>
+#include <cstring>
 
 #include <filesystem>
 #include <fstream>
@@ -216,6 +217,34 @@ void argv_parser::set_allow_config_extras(bool const allow) {
 std::vector<std::string> argv_parser::get_parsed_extras() const {
   // force 2 lines
   return app->remaining();
+}
+
+argv_parser::args::~args() noexcept {
+  if (argv_v != nullptr) {
+    for (int i{0}; i < argc_v + 1; ++i) {
+      std::free(argv_v[i]); // due to `strndup`
+    }
+    delete[] argv_v;
+  }
+}
+
+argv_parser::args argv_parser::get_parsed_extras_c_like() const {
+  args res{};
+
+  auto const remaining_args{get_parsed_extras()};
+  auto const num_remaining_args{remaining_args.size()};
+
+  res.argc_v = static_cast<int>(num_remaining_args);
+  res.argv_v = new char *[res.argc_v + 2];
+
+  res.argv_v[0] = strndup(app->get_name().c_str(), app->get_name().size());
+  for (std::size_t i{0}; i < num_remaining_args; ++i) {
+    res.argv_v[i + 1] =
+        strndup(remaining_args[i].data(), remaining_args[i].size());
+  }
+  res.argv_v[num_remaining_args + 1] = nullptr;
+
+  return res;
 }
 
 int argv_parser::do_parse() {

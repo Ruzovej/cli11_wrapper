@@ -113,8 +113,28 @@ struct argv_parser {
 
   [[nodiscard]] std::vector<std::string> get_parsed_extras() const;
 
-  // TODO wrap those 2 below properly, so it's not needed to inlcude CLI/CLI.hpp
-  // to use them, etc.:
+  // TODO ... maybe unify/deduplicate this with the `build_argc_argv` function,
+  // etc., in unit tests?!
+  struct args {
+    friend struct argv_parser;
+
+    ~args() noexcept;
+
+    [[nodiscard]] int argc() const {
+      // force 2 lines
+      return argc_v;
+    }
+    [[nodiscard]] char **argv() const {
+      // force 2 lines
+      return argv_v;
+    }
+
+  private:
+    int argc_v{};
+    char **argv_v{nullptr}; // owned
+  };
+
+  [[nodiscard]] args get_parsed_extras_c_like() const;
 
   // call it this way (in `main`, etc.), not directly:
   // ```
