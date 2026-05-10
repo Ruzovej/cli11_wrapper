@@ -630,6 +630,130 @@ TEST_CASE("argv_parser") {
           REQUIRE_EQ(option, 42);
         }
       }
+
+      SUBCASE("with configs") {
+        static std::string_view constexpr config_content{R"(
+        # comment line
+        option = 1
+        )"};
+        tmp_file const config{config_content};
+
+        auto parser{make_parser({config.get_path().string()}, err_msg_sink)};
+
+        int option = -1;
+        parser.add_option(
+            cli11_wrapper::env_var_name{"CLI11WRAPPERUNITTEST_OPTION"},
+            "-o,--option", option, "option desc.");
+
+        SUBCASE("value from config") {
+          auto const [argc, argv]{build_argc_argv(app_name, {})};
+
+          parser.reset_argc_argv(argc, argv.get());
+
+          REQUIRE_EQ(call_parse_like_in_main(parser), EXIT_SUCCESS);
+
+          REQUIRE_EQ(option, 1);
+        }
+
+        SUBCASE("value from env. overwriting config") {
+          auto const [argc, argv]{build_argc_argv(app_name, {})};
+
+          parser.reset_argc_argv(argc, argv.get());
+
+          scoped_env_var env_var{"CLI11WRAPPERUNITTEST_OPTION", "2"};
+          REQUIRE_EQ(call_parse_like_in_main(parser), EXIT_SUCCESS);
+
+          REQUIRE_EQ(option, 2);
+        }
+
+        SUBCASE("value from argv") {
+          auto const [argc, argv]{build_argc_argv(app_name, {"--option", "3"})};
+
+          parser.reset_argc_argv(argc, argv.get());
+
+          scoped_env_var env_var{"CLI11WRAPPERUNITTEST_OPTION", "2"};
+          REQUIRE_EQ(call_parse_like_in_main(parser), EXIT_SUCCESS);
+
+          REQUIRE_EQ(option, 3);
+        }
+      }
+    }
+
+    // ... all is similar in the end, so only briefly:
+
+    SUBCASE("long long") {
+      auto parser{make_parser({}, err_msg_sink)};
+
+      long long option_ll = -1;
+      parser.add_option("-l,--option-ll", option_ll, "option desc.");
+
+      auto const [argc, argv]{build_argc_argv(
+          app_name, {"--option-ll", "8000000000"})}; // `int` would overflow
+
+      parser.reset_argc_argv(argc, argv.get());
+
+      REQUIRE_EQ(call_parse_like_in_main(parser), EXIT_SUCCESS);
+
+      REQUIRE_EQ(option_ll, 8'000'000'000LL);
+    }
+
+    SUBCASE("double") {
+      auto parser{make_parser({}, err_msg_sink)};
+
+      double option_dp = -1;
+      parser.add_option("-d,--option-dp", option_dp, "option desc.");
+
+      auto const [argc,
+                  argv]{build_argc_argv(app_name, {"--option-dp", "123.456"})};
+
+      parser.reset_argc_argv(argc, argv.get());
+
+      REQUIRE_EQ(call_parse_like_in_main(parser), EXIT_SUCCESS);
+
+      REQUIRE_EQ(option_dp, 123.456);
+    }
+
+    SUBCASE("string") {
+      auto parser{make_parser({}, err_msg_sink)};
+
+      std::string option_str;
+      parser.add_option("-s,--option-str", option_str, "option desc.");
+
+      static std::string_view constexpr expected_str{
+          "Hello, how are You? I'm fine, thanks for asking."};
+
+      auto const [argc, argv]{build_argc_argv(
+          app_name, {"--option-str", std::string{expected_str}})};
+
+      parser.reset_argc_argv(argc, argv.get());
+
+      REQUIRE_EQ(call_parse_like_in_main(parser), EXIT_SUCCESS);
+
+      REQUIRE_EQ(option_str, expected_str);
+    }
+
+    SUBCASE("strings") {
+      auto parser{make_parser({}, err_msg_sink)};
+
+      std::vector<std::string> option_strs;
+      parser.add_option("-s,--strs", option_strs, "option desc.");
+
+      static std::string_view constexpr expected_str{
+          "Hello, how are You? I'm fine, thanks for asking."};
+
+      auto const [argc, argv]{
+          build_argc_argv(app_name, {"--strs", std::string{expected_str},
+                                     "some", "extra", "args"})};
+
+      parser.reset_argc_argv(argc, argv.get());
+
+      REQUIRE_EQ(call_parse_like_in_main(parser), EXIT_SUCCESS);
+
+      REQUIRE_EQ(option_strs.size(), 4);
+      REQUIRE_EQ(option_strs[0], expected_str);
+      REQUIRE_EQ(option_strs[1], "some");
+      REQUIRE_EQ(option_strs[2], "extra");
+      REQUIRE_EQ(option_strs[3], "args");
     }
   }
 
