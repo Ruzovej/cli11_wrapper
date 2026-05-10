@@ -757,6 +757,120 @@ TEST_CASE("argv_parser") {
     }
   }
 
+  SUBCASE("all at once") {
+    static std::string_view constexpr config_content1{R"(
+      # comment line
+      flag1 = true
+      flag2 = false
+      str1 = "Hello world!"
+      )"};
+    tmp_file const config1{config_content1};
+
+    static std::string_view constexpr config_content2{R"(
+      # comment line
+      flag2 = true
+      int1 = 42
+      )"};
+    tmp_file const config2{config_content2};
+
+    static std::string_view constexpr config_content3{R"(
+      # comment line
+      flag1 = false
+      # `int` would overflow, `long long` is needed:
+      ll1 = 8000000000
+      fp1 = 3.141529
+      str2 = string2
+      array1 = ["a1", "a2", "a3"]
+      )"};
+    tmp_file const config3{config_content3};
+
+    auto parser{
+        make_parser({config1.get_path().string(), config2.get_path().string(),
+                     config3.get_path().string()},
+                    err_msg_sink)};
+
+    parser.set_allow_config_extras(false);
+
+    bool flag1 = false;
+    parser.add_flag(cli11_wrapper::env_var_name{"CLI11WRAPPERUNITTEST_FLAG1"},
+                    "--flag1,!--no-flag1", flag1, "flag1 desc.");
+
+    bool flag2 = false;
+    parser.add_flag(cli11_wrapper::env_var_name{"CLI11WRAPPERUNITTEST_FLAG2"},
+                    "--flag2,!--no-flag2", flag2, "flag2 desc.");
+
+    bool flag3 = false;
+    parser.add_flag(cli11_wrapper::env_var_name{"CLI11WRAPPERUNITTEST_FLAG3"},
+                    "--flag3,!--no-flag3", flag3, "flag3 desc.");
+
+    bool flag4 = true;
+    parser.add_flag(cli11_wrapper::env_var_name{"CLI11WRAPPERUNITTEST_FLAG4"},
+                    "--flag4,!--no-flag4", flag4, "flag4 desc.");
+
+    int int1 = -1;
+    parser.add_option(cli11_wrapper::env_var_name{"CLI11WRAPPERUNITTEST_INT1"},
+                      "--int1", int1, "int1 desc.");
+
+    int int2 = -1;
+    parser.add_option(cli11_wrapper::env_var_name{"CLI11WRAPPERUNITTEST_INT2"},
+                      "--int2", int2, "int2 desc.");
+
+    long long ll1 = -1;
+    parser.add_option(cli11_wrapper::env_var_name{"CLI11WRAPPERUNITTEST_LL1"},
+                      "--ll1", ll1, "ll1 desc.");
+
+    long long ll2 = -1;
+    parser.add_option(cli11_wrapper::env_var_name{"CLI11WRAPPERUNITTEST_LL2"},
+                      "--ll2", ll2, "ll2 desc.");
+
+    double fp1 = -1.1;
+    parser.add_option(cli11_wrapper::env_var_name{"CLI11WRAPPERUNITTEST_FP1"},
+                      "--fp1", fp1, "fp1 desc.");
+
+    double fp2 = -1.1;
+    parser.add_option(cli11_wrapper::env_var_name{"CLI11WRAPPERUNITTEST_FP2"},
+                      "--fp2", fp2, "fp2 desc.");
+
+    double fp3 = -1.1;
+    parser.add_option(cli11_wrapper::env_var_name{"CLI11WRAPPERUNITTEST_FP3"},
+                      "--fp3", fp3, "fp3 desc.");
+
+    std::string str1;
+    parser.add_option(cli11_wrapper::env_var_name{"CLI11WRAPPERUNITTEST_STR1"},
+                      "--str1", str1, "str1 desc.");
+
+    std::string str2;
+    parser.add_option(cli11_wrapper::env_var_name{"CLI11WRAPPERUNITTEST_STR2"},
+                      "--str2", str2, "str2 desc.");
+
+    std::string str3{"default str3"};
+    parser.add_option(cli11_wrapper::env_var_name{"CLI11WRAPPERUNITTEST_STR3"},
+                      "--str3", str3, "str3 desc.");
+
+    std::vector<std::string> array1;
+    parser.add_option(
+        cli11_wrapper::env_var_name{"CLI11WRAPPERUNITTEST_ARRAY1"}, "--array1",
+        array1, "array1 desc.");
+
+    std::vector<std::string> array2;
+    parser.add_option(
+        cli11_wrapper::env_var_name{"CLI11WRAPPERUNITTEST_ARRAY2"}, "--array2",
+        array2, "array2 desc.");
+
+    static std::string_view constexpr expected_str{
+        "Hello, how are You? I'm fine, thanks for asking."};
+
+    auto const [argc, argv]{
+        build_argc_argv(app_name, {"--array2", std::string{expected_str},
+                                   "some", "extra", "args"})};
+
+    parser.reset_argc_argv(argc, argv.get());
+
+    REQUIRE_EQ(call_parse_like_in_main(parser), EXIT_SUCCESS);
+
+    // TODO asserts on particular parsed values ...
+  }
+
   REQUIRE(err_msg_sink.str().empty());
 }
 
