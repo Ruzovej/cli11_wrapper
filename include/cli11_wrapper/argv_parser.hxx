@@ -26,6 +26,8 @@
 #include <string>
 #include <vector>
 
+#include "cli11_wrapper/args.hxx"
+
 // call this from `main`, etc.:
 #define CLI11_WRAPPER_PARSE(parser)                                            \
   do {                                                                         \
@@ -112,27 +114,6 @@ struct argv_parser {
   void set_allow_config_extras(bool const allow);
 
   [[nodiscard]] std::vector<std::string> get_parsed_extras() const;
-
-  // TODO ... maybe unify/deduplicate this with the `build_argc_argv` function,
-  // etc., in unit tests?!
-  struct args {
-    friend struct argv_parser;
-
-    ~args() noexcept;
-
-    [[nodiscard]] int argc() const {
-      // force 2 lines
-      return argc_v;
-    }
-    [[nodiscard]] char **argv() const {
-      // force 2 lines
-      return argv_v;
-    }
-
-  private:
-    int argc_v{};
-    char **argv_v{nullptr}; // owned
-  };
 
   [[nodiscard]] args get_parsed_extras_c_like() const;
 
