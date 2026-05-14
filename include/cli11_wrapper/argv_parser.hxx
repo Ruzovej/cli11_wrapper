@@ -72,31 +72,33 @@ struct argv_parser {
   ~argv_parser();
 
   CLI::Option *add_option(std::string &&name, int &value,
-                          std::string &&desc = "");
+                          std::string &&desc = "", bool const required = false);
   CLI::Option *add_option(env_var_name &&env, std::string &&name, int &value,
-                          std::string &&desc = "");
+                          std::string &&desc = "", bool const required = false);
 
   CLI::Option *add_option(std::string &&name, long long &value,
-                          std::string &&desc = "");
+                          std::string &&desc = "", bool const required = false);
   CLI::Option *add_option(env_var_name &&env, std::string &&name,
-                          long long &value, std::string &&desc = "");
+                          long long &value, std::string &&desc = "",
+                          bool const required = false);
 
   CLI::Option *add_option(std::string &&name, double &value,
-                          std::string &&desc = "");
+                          std::string &&desc = "", bool const required = false);
   CLI::Option *add_option(env_var_name &&env, std::string &&name, double &value,
-                          std::string &&desc = "");
+                          std::string &&desc = "", bool const required = false);
 
   CLI::Option *add_option(std::string &&name, std::string &value,
-                          std::string &&desc = "");
+                          std::string &&desc = "", bool const required = false);
   CLI::Option *add_option(env_var_name &&env, std::string &&name,
-                          std::string &value, std::string &&desc = "");
+                          std::string &value, std::string &&desc = "",
+                          bool const required = false);
 
   CLI::Option *add_option(std::string &&name, std::vector<std::string> &values,
-                          std::string &&desc = "");
+                          std::string &&desc = "", bool const required = false);
   // TODO is there even "reasonable" way how to specify it in an env. var.?!
   CLI::Option *add_option(env_var_name &&env, std::string &&name,
                           std::vector<std::string> &values,
-                          std::string &&desc = "");
+                          std::string &&desc = "", bool const required = false);
 
   CLI::Option *add_flag(std::string &&name, bool &flag,
                         std::string &&desc = "");

@@ -959,6 +959,55 @@ TEST_CASE("argv_parser") {
     }
   }
 
+  SUBCASE("required") {
+    auto parser{make_parser({}, err_msg_sink)};
+
+    std::string s1{"default"};
+    parser.add_option("-m,--mandatory", s1, "mandatory string option", true);
+
+    std::string s2{"default"};
+    parser.add_option("-o,--optional", s2, "optional string option");
+
+    SUBCASE("-m m -o o ... all provided") {
+      auto const [argc,
+                  argv]{build_argc_argv(app_name, {"-m", "m", "-o", "o"})};
+
+      parser.reset_argc_argv(argc, argv.get());
+
+      REQUIRE_EQ(call_parse_like_in_main(parser), EXIT_SUCCESS);
+
+      REQUIRE_EQ(s1, "m");
+      REQUIRE_EQ(s2, "o");
+    }
+
+    SUBCASE("-m m ... only mandatory provided") {
+      auto const [argc, argv]{build_argc_argv(app_name, {"-m", "m"})};
+
+      parser.reset_argc_argv(argc, argv.get());
+
+      REQUIRE_EQ(call_parse_like_in_main(parser), EXIT_SUCCESS);
+
+      REQUIRE_EQ(s1, "m");
+      REQUIRE_EQ(s2, "default");
+    }
+
+    SUBCASE("-o o ... mandatory missing, error") {
+      auto const [argc, argv]{build_argc_argv(app_name, {"-o", "o"})};
+
+      parser.reset_argc_argv(argc, argv.get());
+
+      REQUIRE_NE(call_parse_like_in_main(parser), EXIT_SUCCESS);
+
+      REQUIRE_EQ(s1, "default");
+      REQUIRE_EQ(s2, "default"); // isn't changed ...
+
+      REQUIRE_EQ(err_msg_sink.str(),
+                 std::string_view{"--mandatory is required\n"});
+
+      err_msg_sink.str("");
+    }
+  }
+
   REQUIRE(err_msg_sink.str().empty());
 }
 

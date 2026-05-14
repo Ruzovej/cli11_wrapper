@@ -125,59 +125,68 @@ void argv_parser::set_error_message_sink(std::ostringstream &err_msg_sink) {
 }
 
 CLI::Option *argv_parser::add_option(std::string &&name, int &value,
-                                     std::string &&desc) {
-  return app->add_option(std::move(name), value, std::move(desc));
+                                     std::string &&desc, bool const required) {
+  return app->add_option(std::move(name), value, std::move(desc))
+      ->required(required);
 }
 
 CLI::Option *argv_parser::add_option(env_var_name &&env, std::string &&name,
-                                     int &value, std::string &&desc) {
-  return add_option(std::move(name), value, std::move(desc))
+                                     int &value, std::string &&desc,
+                                     bool const required) {
+  return add_option(std::move(name), value, std::move(desc), required)
       ->envname(std::move(env).get_name());
 }
 
 CLI::Option *argv_parser::add_option(std::string &&name, long long &value,
-                                     std::string &&desc) {
-  return app->add_option(std::move(name), value, std::move(desc));
+                                     std::string &&desc, bool const required) {
+  return app->add_option(std::move(name), value, std::move(desc))
+      ->required(required);
 }
 
 CLI::Option *argv_parser::add_option(env_var_name &&env, std::string &&name,
-                                     long long &value, std::string &&desc) {
-  return add_option(std::move(name), value, std::move(desc))
+                                     long long &value, std::string &&desc,
+                                     bool const required) {
+  return add_option(std::move(name), value, std::move(desc), required)
       ->envname(std::move(env).get_name());
 }
 
 CLI::Option *argv_parser::add_option(std::string &&name, double &value,
-                                     std::string &&desc) {
-  return app->add_option(std::move(name), value, std::move(desc));
+                                     std::string &&desc, bool const required) {
+  return app->add_option(std::move(name), value, std::move(desc))
+      ->required(required);
 }
 
 CLI::Option *argv_parser::add_option(env_var_name &&env, std::string &&name,
-                                     double &value, std::string &&desc) {
-  return add_option(std::move(name), value, std::move(desc))
+                                     double &value, std::string &&desc,
+                                     bool const required) {
+  return add_option(std::move(name), value, std::move(desc), required)
       ->envname(std::move(env).get_name());
 }
 
 CLI::Option *argv_parser::add_option(std::string &&name, std::string &value,
-                                     std::string &&desc) {
-  return app->add_option(std::move(name), value, std::move(desc));
+                                     std::string &&desc, bool const required) {
+  return app->add_option(std::move(name), value, std::move(desc))
+      ->required(required);
 }
 
 CLI::Option *argv_parser::add_option(env_var_name &&env, std::string &&name,
-                                     std::string &value, std::string &&desc) {
-  return add_option(std::move(name), value, std::move(desc))
+                                     std::string &value, std::string &&desc,
+                                     bool const required) {
+  return add_option(std::move(name), value, std::move(desc), required)
       ->envname(std::move(env).get_name());
 }
 
 CLI::Option *argv_parser::add_option(std::string &&name,
                                      std::vector<std::string> &values,
-                                     std::string &&desc) {
-  return app->add_option(std::move(name), values, std::move(desc));
+                                     std::string &&desc, bool const required) {
+  return app->add_option(std::move(name), values, std::move(desc))
+      ->required(required);
 }
 
 CLI::Option *argv_parser::add_option(env_var_name &&env, std::string &&name,
                                      std::vector<std::string> &values,
-                                     std::string &&desc) {
-  return add_option(std::move(name), values, std::move(desc))
+                                     std::string &&desc, bool const required) {
+  return add_option(std::move(name), values, std::move(desc), required)
       ->envname(std::move(env).get_name());
 }
 
