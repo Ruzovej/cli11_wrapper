@@ -2,6 +2,12 @@
 
 Small wrapper to ease use of the [CLI11 library](https://github.com/CLIUtils/CLI11).
 
+## License
+
+![LGPLv3 image](doc/lgplv3-with-text-154x68.png)
+
+[`LGPLv3`](https://www.gnu.org/licenses/lgpl-3.0.html) -> [COPYING](COPYING) & [COPYING.lesser](COPYING.LESSER)
+
 ## Usage
 
 ### `C++`
@@ -38,8 +44,22 @@ target_link_libraries(
 ...
 ```
 
-## License
+## Development
 
-![LGPLv3 image](doc/lgplv3-with-text-154x68.png)
+### Running unit tests with sanitizers
 
-[`LGPLv3`](https://www.gnu.org/licenses/lgpl-3.0.html) -> [COPYING](COPYING) & [COPYING.lesser](COPYING.LESSER)
+Examples:
+
+#### With `tsan`
+
+```bash
+$ scripts/configure.bash --tsan && scripts/unit_tests.bash
+...
+```
+
+#### With `asan` & `ubsan`
+
+```bash
+$ scripts/configure.bash --asan && scripts/unit_tests.bash
+...
+```
